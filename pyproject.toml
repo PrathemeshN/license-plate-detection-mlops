@@ -129,3 +129,11 @@ exclude_dirs = [
     "tests",
     ".venv",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "app*",
+    "preprocessing*",
+    "evaluation*",
+]
