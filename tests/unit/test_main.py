@@ -13,3 +13,11 @@ def test_health_check() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
+
+
+def test_readiness_check() -> None:
+    """Verify that the readiness endpoint returns a ready status."""
+    response = client.get("/ready")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}

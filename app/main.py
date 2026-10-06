@@ -27,3 +27,13 @@ def health_check() -> dict[str, str]:
         A dictionary indicating that the application is healthy.
     """
     return {"status": "healthy"}
+
+
+@app.get("/ready")
+def readiness_check() -> dict[str, str]:
+    """Return application readiness status.
+
+    Returns:
+        A dictionary indicating that the application is ready.
+    """
+    return {"status": "ready"}
