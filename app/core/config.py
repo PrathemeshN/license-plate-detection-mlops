@@ -27,6 +27,10 @@ class Settings(BaseSettings):
         default="1.0.0",
         alias="MODEL_VERSION",
     )
+    model_path: str = Field(
+        default="models/yolo11n-v3/best.pt",
+        alias="MODEL_PATH",
+    )
 
     confidence_threshold: float = Field(
         default=0.38,
