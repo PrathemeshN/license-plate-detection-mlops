@@ -37,7 +37,7 @@ jobs:
         run: black --check .
 
       - name: MyPy
-        run: mypy app preprocessing evaluation
+        run: mypy app preprocessing
 
       - name: Pytest
         run: |

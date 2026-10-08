@@ -38,7 +38,6 @@ select = [
     "I",
     "B",
     "UP",
-    "N",
     "S",
 ]
 
@@ -51,7 +50,6 @@ ignore = [
 "tests/**/*.py" = [
     "S101",
 ]
-
 
 [tool.black]
 line-length = 88

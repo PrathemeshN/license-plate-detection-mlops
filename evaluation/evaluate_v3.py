@@ -1,9 +1,8 @@
-﻿from pathlib import Path
-import json
+﻿import json
 import time
+from pathlib import Path
 
 from ultralytics import YOLO
-
 
 MODEL_PATH = Path("models/yolo11n-v3/best.pt")
 IMAGE_DIR = Path("testing_dataset/License-Plate-Data/test/images")
@@ -80,7 +79,8 @@ def load_ground_truth(label_path, width, height):
 
 def main():
     images = sorted(
-        p for p in IMAGE_DIR.iterdir()
+        p
+        for p in IMAGE_DIR.iterdir()
         if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}
     )
 
@@ -147,6 +147,7 @@ def main():
                 result.boxes.xyxy.cpu().tolist(),
                 result.boxes.conf.cpu().tolist(),
                 result.boxes.cls.cpu().tolist(),
+                strict=True,
             ):
                 predictions.append(
                     {
@@ -230,23 +231,13 @@ def main():
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
 
-    f1 = (
-        2 * precision * recall / (precision + recall)
-        if precision + recall
-        else 0.0
-    )
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
 
     avg_inference_ms = (
-        sum(inference_times) / len(inference_times) * 1000
-        if inference_times
-        else 0.0
+        sum(inference_times) / len(inference_times) * 1000 if inference_times else 0.0
     )
 
-    avg_confidence = (
-        sum(confidences) / len(confidences)
-        if confidences
-        else 0.0
-    )
+    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
 
     results = {
         "model": str(MODEL_PATH),
@@ -270,13 +261,9 @@ def main():
     output_dir = Path("evaluation/results")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    (output_dir / "v3_holdout_metrics.json").write_text(
-        json.dumps(results, indent=2)
-    )
+    (output_dir / "v3_holdout_metrics.json").write_text(json.dumps(results, indent=2))
 
-    (output_dir / "v3_per_image.json").write_text(
-        json.dumps(per_image, indent=2)
-    )
+    (output_dir / "v3_per_image.json").write_text(json.dumps(per_image, indent=2))
 
     print()
     print("=" * 70)
