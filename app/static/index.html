@@ -585,7 +585,7 @@ document.getElementById("bulkFile").addEventListener("change", async e => {
 
     document.getElementById("bulkSummary").textContent = "Processing...";
 
-    const response = await fetch(`${API}/predict/bulk`, {
+    const response = await fetch(`${API}/bulk-predict`, {
         method: "POST",
         body: form
     });

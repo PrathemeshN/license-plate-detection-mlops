@@ -22,7 +22,6 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY app ./app
 COPY frontend ./frontend
-COPY configs ./configs
 COPY preprocessing ./preprocessing
 COPY evaluation ./evaluation
 COPY models ./models
