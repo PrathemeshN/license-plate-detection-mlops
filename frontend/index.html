@@ -1,0 +1,1090 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlateVision | License Plate Detection</title>
+
+<style>
+:root {
+    --bg: #f7f9fc;
+    --surface: #ffffff;
+    --surface-soft: #f4f7fb;
+    --surface-hover: #eef3f8;
+
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+
+    --text: #172033;
+    --text-secondary: #475569;
+    --muted: #64748b;
+
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-soft: #eff6ff;
+
+    --success: #16a34a;
+    --success-soft: #f0fdf4;
+
+    --warning: #d97706;
+    --warning-soft: #fffbeb;
+
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.07);
+    --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.09);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+        radial-gradient(
+            circle at 85% 0%,
+            rgba(37, 99, 235, 0.055),
+            transparent 28%
+        ),
+        var(--bg);
+    color: var(--text);
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* =========================
+   HEADER
+   ========================= */
+
+header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+
+    height: 72px;
+    padding: 0 5%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid var(--border);
+
+    backdrop-filter: blur(12px);
+}
+
+.logo {
+    font-size: 21px;
+    font-weight: 750;
+    letter-spacing: -0.4px;
+    color: var(--text);
+}
+
+.logo span {
+    color: var(--primary);
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+    background: var(--success);
+
+    box-shadow:
+        0 0 0 4px rgba(22, 163, 74, 0.10);
+}
+
+/* =========================
+   MAIN
+   ========================= */
+
+.container {
+    width: min(1280px, 92%);
+    margin: 0 auto;
+    padding: 54px 0 70px;
+}
+
+/* =========================
+   HERO
+   ========================= */
+
+.hero {
+    margin-bottom: 32px;
+}
+
+.hero h1 {
+    margin: 0 0 10px;
+
+    font-size: clamp(34px, 4vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -1.8px;
+    font-weight: 760;
+
+    color: var(--text);
+}
+
+.hero p {
+    margin: 0;
+
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* =========================
+   TABS
+   ========================= */
+
+.tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    margin-bottom: 18px;
+    padding: 5px;
+
+    width: fit-content;
+
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.tab {
+    appearance: none;
+
+    border: 1px solid transparent;
+    background: transparent;
+
+    color: var(--text-secondary);
+
+    padding: 10px 17px;
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 13px;
+    font-weight: 650;
+
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.tab:hover {
+    color: var(--text);
+    background: var(--surface);
+}
+
+.tab.active {
+    color: var(--primary);
+    background: var(--surface);
+    border-color: var(--border);
+
+    box-shadow: var(--shadow-sm);
+}
+
+/* =========================
+   PANELS
+   ========================= */
+
+.panel {
+    display: none;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+
+    padding: 26px;
+
+    box-shadow: var(--shadow-sm);
+}
+
+.panel.active {
+    display: block;
+}
+
+/* =========================
+   UPLOAD AREA
+   ========================= */
+
+.dropzone {
+    display: block;
+
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+
+    padding: 62px 25px;
+
+    text-align: center;
+    cursor: pointer;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #fafcff 100%
+        );
+
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.18s ease;
+}
+
+.dropzone:hover {
+    border-color: #93c5fd;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f8fbff 100%
+        );
+
+    box-shadow:
+        0 0 0 4px rgba(37, 99, 235, 0.05);
+}
+
+.dropzone h2 {
+    margin: 0 0 8px;
+
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+
+    color: var(--text);
+}
+
+.dropzone p {
+    margin: 0 0 22px;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+
+.btn {
+    appearance: none;
+
+    border: 1px solid var(--primary);
+    border-radius: 9px;
+
+    padding: 11px 17px;
+
+    background: var(--primary);
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.08);
+
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.12s ease;
+}
+
+.btn:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+
+    box-shadow:
+        0 4px 12px rgba(37, 99, 235, 0.18);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn.secondary {
+    background: #ffffff;
+    color: var(--primary);
+    border-color: #bfdbfe;
+}
+
+.btn.secondary:hover {
+    background: var(--primary-soft);
+    border-color: #93c5fd;
+}
+
+.btn.danger {
+    background: #ffffff;
+    color: var(--danger);
+    border-color: #fecaca;
+}
+
+.btn.danger:hover {
+    background: var(--danger-soft);
+    border-color: #fca5a5;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+/* =========================
+   IMAGE PREVIEW
+   ========================= */
+
+#previewArea {
+    position: relative;
+    display: inline-block;
+
+    max-width: 100%;
+
+    margin-top: 25px;
+
+    padding: 8px;
+
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-lg);
+}
+
+#preview {
+    display: block;
+
+    max-width: 100%;
+    max-height: 650px;
+
+    border-radius: 10px;
+}
+
+/* =========================
+   DETECTION BOX
+   ========================= */
+
+.box {
+    position: absolute;
+
+    border: 2px solid var(--primary);
+
+    background: rgba(37, 99, 235, 0.07);
+
+    pointer-events: none;
+
+    border-radius: 3px;
+}
+
+.box.low {
+    border-color: var(--warning);
+    background: rgba(217, 119, 6, 0.07);
+}
+
+.badge {
+    position: absolute;
+
+    top: -27px;
+    left: -2px;
+
+    padding: 5px 8px;
+
+    border-radius: 6px 6px 0 0;
+
+    background: var(--primary);
+    color: #ffffff;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.low .badge {
+    background: var(--warning);
+}
+
+/* =========================
+   RESULT CARDS
+   ========================= */
+
+.results {
+    margin-top: 22px;
+
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(190px, 1fr));
+
+    gap: 12px;
+}
+
+.card {
+    padding: 17px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+
+    box-shadow: var(--shadow-sm);
+}
+
+.card strong {
+    display: block;
+
+    margin: 5px 0;
+
+    font-size: 25px;
+    line-height: 1.15;
+
+    color: var(--text);
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.success {
+    color: var(--success);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.warning {
+    color: var(--warning);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.error {
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+/* =========================
+   CAMERA
+   ========================= */
+
+.camera-wrap {
+    position: relative;
+
+    max-width: 1000px;
+
+    margin: auto;
+
+    overflow: hidden;
+
+    background: #111827;
+
+    border-radius: var(--radius-lg);
+
+    border: 1px solid var(--border);
+
+    box-shadow: var(--shadow-md);
+}
+
+#video {
+    display: block;
+
+    width: 100%;
+    min-height: 360px;
+
+    object-fit: cover;
+}
+
+#cameraCanvas {
+    display: none;
+}
+
+.camera-status {
+    max-width: 1000px;
+
+    margin: 12px auto 0;
+    padding: 12px 14px;
+
+    color: var(--text-secondary);
+
+    background: var(--surface-soft);
+
+    border: 1px solid var(--border);
+    border-radius: 9px;
+
+    font-size: 13px;
+}
+
+/* =========================
+   TABLE
+   ========================= */
+
+table {
+    width: 100%;
+
+    margin-top: 22px;
+
+    border-collapse: separate;
+    border-spacing: 0;
+
+    overflow: hidden;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+th,
+td {
+    padding: 13px 14px;
+
+    text-align: left;
+
+    border-bottom: 1px solid var(--border);
+
+    font-size: 13px;
+}
+
+th {
+    background: var(--surface-soft);
+
+    color: var(--text-secondary);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+tbody tr:hover {
+    background: #fafcff;
+}
+
+.low-row {
+    background: var(--warning-soft);
+}
+
+.low-row:hover {
+    background: #fff8e8;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 800px) {
+    header {
+        height: 64px;
+        padding: 0 4%;
+    }
+
+    .container {
+        width: 94%;
+        padding-top: 36px;
+    }
+
+    .hero h1 {
+        font-size: 36px;
+    }
+
+    .tabs {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .tab {
+        flex: 1;
+        white-space: nowrap;
+    }
+
+    .panel {
+        padding: 17px;
+    }
+
+    .dropzone {
+        padding: 45px 18px;
+    }
+
+    #video {
+        min-height: 240px;
+    }
+
+    th,
+    td {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 520px) {
+    .status {
+        font-size: 11px;
+    }
+
+    .hero h1 {
+        font-size: 31px;
+    }
+
+    .hero p {
+        font-size: 14px;
+    }
+
+    .dropzone h2 {
+        font-size: 18px;
+    }
+
+    .results {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">Plate<span>Vision</span></div>
+    <div class="status">
+        <div class="dot"></div>
+        API ONLINE
+    </div>
+</header>
+
+<main class="container">
+
+<section class="hero">
+    <h1>License Plate Detection</h1>
+    <p>YOLO11n V3 inference · Confidence-aware detection · Production API</p>
+</section>
+
+<div class="tabs">
+    <button class="tab active" onclick="showTab('single', this)">Single Image</button>
+    <button class="tab" onclick="showTab('bulk', this)">Bulk ZIP</button>
+    <button class="tab" onclick="showTab('camera', this)">Live Camera</button>
+</div>
+
+<section id="single" class="panel active">
+
+    <label class="dropzone" for="imageInput">
+        <h2>Drop vehicle image here</h2>
+        <p class="muted">PNG, JPG, JPEG or WEBP · Maximum 10 MB</p>
+        <button class="btn" type="button"
+                onclick="document.getElementById('imageInput').click()">
+            Choose Image
+        </button>
+    </label>
+
+    <input id="imageInput" type="file" accept="image/*">
+
+    <div id="singleStatus" class="muted" style="margin-top:15px"></div>
+
+    <div id="previewArea">
+        <img id="preview">
+    </div>
+
+    <div id="singleResults" class="results"></div>
+</section>
+
+<section id="bulk" class="panel">
+
+    <label class="dropzone" for="zipInput">
+        <h2>Upload detection batch</h2>
+        <p class="muted">ZIP archive containing vehicle images</p>
+        <button class="btn secondary" type="button"
+                onclick="document.getElementById('zipInput').click()">
+            Choose ZIP
+        </button>
+    </label>
+
+    <input id="zipInput" type="file" accept=".zip">
+
+    <div id="bulkStatus" class="muted" style="margin-top:15px"></div>
+
+    <div class="actions">
+        <button id="exportBtn" class="btn" style="display:none"
+                onclick="exportCSV()">Export CSV</button>
+    </div>
+
+    <div id="bulkResults"></div>
+</section>
+
+<section id="camera" class="panel">
+
+    <div class="camera-wrap">
+        <video id="video" autoplay playsinline></video>
+    </div>
+
+    <canvas id="cameraCanvas"></canvas>
+
+    <div class="camera-status" id="cameraStatus">
+        Camera stopped.
+    </div>
+
+    <div class="actions">
+        <button class="btn" onclick="startCamera()">Start Camera</button>
+        <button class="btn danger" onclick="stopCamera()">Stop Camera</button>
+    </div>
+
+    <div id="cameraResults" class="results"></div>
+</section>
+
+</main>
+
+<script>
+const API = "/api/v1";
+let bulkData = [];
+let cameraStream = null;
+let cameraTimer = null;
+let cameraBusy = false;
+
+function showTab(id, button) {
+    document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+
+    document.getElementById(id).classList.add("active");
+    button.classList.add("active");
+
+    if (id !== "camera") stopCamera();
+}
+
+document.getElementById("imageInput").addEventListener("change", async function() {
+    const file = this.files[0];
+    if (!file) return;
+
+    const preview = document.getElementById("preview");
+    preview.src = URL.createObjectURL(file);
+
+    document.getElementById("singleStatus").textContent = "Running YOLO11n V3 inference...";
+
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+        const response = await fetch(`${API}/predict`, {
+            method: "POST",
+            body: form
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.detail || "Inference failed");
+
+        await new Promise(resolve => {
+            if (preview.complete) resolve();
+            else preview.onload = resolve;
+        });
+
+        drawDetections(preview, data.detections);
+        renderSingleResults(data);
+
+        document.getElementById("singleStatus").textContent =
+            `Detection complete · ${data.count} plate(s) detected`;
+    } catch (error) {
+        document.getElementById("singleStatus").textContent = error.message;
+    }
+});
+
+function drawDetections(image, detections) {
+    const area = document.getElementById("previewArea");
+
+    area.querySelectorAll(".box").forEach(x => x.remove());
+
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+
+    const scaleX = image.clientWidth / naturalWidth;
+    const scaleY = image.clientHeight / naturalHeight;
+
+    detections.forEach(d => {
+        const box = document.createElement("div");
+        box.className = "box" + (d.review_required ? " low" : "");
+
+        box.style.left = `${d.bbox.x1 * scaleX}px`;
+        box.style.top = `${d.bbox.y1 * scaleY}px`;
+        box.style.width = `${(d.bbox.x2 - d.bbox.x1) * scaleX}px`;
+        box.style.height = `${(d.bbox.y2 - d.bbox.y1) * scaleY}px`;
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent =
+            `${(d.confidence * 100).toFixed(1)}%` +
+            (d.review_required ? " · REVIEW" : "");
+
+        box.appendChild(badge);
+        area.appendChild(box);
+    });
+}
+
+function renderSingleResults(data) {
+    const container = document.getElementById("singleResults");
+
+    if (!data.detections.length) {
+        container.innerHTML =
+            `<div class="card"><strong>0</strong><br>
+             <span class="muted">No license plate detected</span></div>`;
+        return;
+    }
+
+    container.innerHTML = data.detections.map((d, i) => `
+        <div class="card">
+            <div class="muted">PLATE ${i + 1}</div>
+            <strong>${(d.confidence * 100).toFixed(1)}%</strong>
+            <div class="${d.review_required ? "warning" : "success"}">
+                ${d.review_required ? "Review Required" : "High Confidence"}
+            </div>
+        </div>
+    `).join("");
+}
+
+document.getElementById("zipInput").addEventListener("change", async function() {
+    const file = this.files[0];
+    if (!file) return;
+
+    document.getElementById("bulkStatus").textContent =
+        "Processing ZIP archive...";
+
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+        const response = await fetch(`${API}/bulk-predict`, {
+            method: "POST",
+            body: form
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.detail || "Bulk inference failed");
+
+        bulkData = data.results;
+        renderBulkResults(data.results);
+
+        document.getElementById("exportBtn").style.display = "inline-block";
+        document.getElementById("bulkStatus").textContent =
+            `Processed ${data.count} image(s)`;
+    } catch (error) {
+        document.getElementById("bulkStatus").textContent = error.message;
+    }
+});
+
+function renderBulkResults(results) {
+    const rows = results.map(item => {
+        const detection = item.detections?.[0];
+
+        if (!detection) {
+            return `
+            <tr class="low-row">
+                <td>${item.filename}</td>
+                <td>0</td>
+                <td class="warning">No Detection</td>
+                <td>Review</td>
+            </tr>`;
+        }
+
+        const confidence = detection.confidence * 100;
+
+        return `
+        <tr class="${detection.review_required ? "low-row" : ""}">
+            <td>${item.filename}</td>
+            <td>${item.count}</td>
+            <td>${confidence.toFixed(1)}%</td>
+            <td class="${detection.review_required ? "warning" : "success"}">
+                ${detection.review_required ? "Review Needed" : "Accepted"}
+            </td>
+        </tr>`;
+    }).join("");
+
+    document.getElementById("bulkResults").innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Detections</th>
+                    <th>Confidence</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+}
+
+function exportCSV() {
+    const rows = [
+        ["Filename", "Detections", "Confidence", "Status"]
+    ];
+
+    bulkData.forEach(item => {
+        const d = item.detections?.[0];
+
+        rows.push([
+            item.filename,
+            item.count || 0,
+            d ? `${(d.confidence * 100).toFixed(2)}%` : "",
+            d ? (d.review_required ? "Review Needed" : "Accepted") : "No Detection"
+        ]);
+    });
+
+    const csv = rows.map(row =>
+        row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")
+    ).join("\n");
+
+    const blob = new Blob([csv], {type: "text/csv"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "license_plate_detection_results.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+async function startCamera() {
+    if (cameraStream) return;
+
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: {ideal: "environment"},
+                width: {ideal: 1280},
+                height: {ideal: 720}
+            },
+            audio: false
+        });
+
+        document.getElementById("video").srcObject = cameraStream;
+
+        document.getElementById("cameraStatus").textContent =
+            "Live detection active · analyzing every 1.5 seconds";
+
+        cameraTimer = setInterval(captureCameraFrame, 1500);
+    } catch (error) {
+        document.getElementById("cameraStatus").textContent =
+            `Camera access failed: ${error.message}`;
+    }
+}
+
+function stopCamera() {
+    if (cameraTimer) {
+        clearInterval(cameraTimer);
+        cameraTimer = null;
+    }
+
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+
+    const video = document.getElementById("video");
+    video.srcObject = null;
+
+    const status = document.getElementById("cameraStatus");
+
+    if (status) status.textContent = "Camera stopped.";
+}
+
+async function captureCameraFrame() {
+    if (cameraBusy || !cameraStream) return;
+
+    const video = document.getElementById("video");
+
+    if (!video.videoWidth || !video.videoHeight) return;
+
+    cameraBusy = true;
+
+    try {
+        const canvas = document.getElementById("cameraCanvas");
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0);
+
+        const blob = await new Promise(resolve =>
+            canvas.toBlob(resolve, "image/jpeg", 0.82)
+        );
+
+        const form = new FormData();
+        form.append("file", blob, "camera.jpg");
+
+        const response = await fetch(`${API}/predict`, {
+            method: "POST",
+            body: form
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) return;
+
+        const detected = data.detections || [];
+
+        document.getElementById("cameraResults").innerHTML =
+            detected.length
+            ? detected.map((d, i) => `
+                <div class="card">
+                    <div class="muted">LIVE PLATE ${i + 1}</div>
+                    <strong>${(d.confidence * 100).toFixed(1)}%</strong>
+                    <div class="${d.review_required ? "warning" : "success"}">
+                        ${d.review_required ? "Review Required" : "Detected"}
+                    </div>
+                </div>
+              `).join("")
+            : `<div class="card">
+                 <strong>0</strong><br>
+                 <span class="muted">No plate detected in current frame</span>
+               </div>`;
+    } finally {
+        cameraBusy = false;
+    }
+}
+</script>
+
+</body>
+</html>

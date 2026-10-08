@@ -1,4 +1,4 @@
-"""Schemas for license plate inference API."""
+﻿"""Schemas for license plate inference API."""
 
 from pydantic import BaseModel, Field
 
@@ -23,7 +23,22 @@ class DetectionResponse(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    """Response returned by the prediction endpoint."""
+    """Response returned by the single-image prediction endpoint."""
 
     count: int = Field(ge=0)
     detections: list[DetectionResponse]
+
+
+class BulkImageResult(BaseModel):
+    """Detection result for one image in a bulk request."""
+
+    filename: str
+    count: int = Field(ge=0)
+    detections: list[DetectionResponse]
+
+
+class BulkPredictionResponse(BaseModel):
+    """Response returned by the bulk ZIP prediction endpoint."""
+
+    count: int = Field(ge=0)
+    results: list[BulkImageResult]

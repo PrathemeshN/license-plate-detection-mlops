@@ -1,6 +1,9 @@
 """FastAPI application entry point."""
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 
 from app.api.routes import router
 from app.core.config import get_settings
@@ -19,21 +22,19 @@ app = FastAPI(
 app.include_router(router)
 
 
+@app.get("/", include_in_schema=False)
+def frontend() -> FileResponse:
+    """Serve the PlateVision frontend."""
+    return FileResponse(Path("/app/frontend/index.html"))
+
+
 @app.get("/health")
 def health_check() -> dict[str, str]:
-    """Return application health status.
-
-    Returns:
-        A dictionary indicating that the application is healthy.
-    """
+    """Return application health status."""
     return {"status": "healthy"}
 
 
 @app.get("/ready")
 def readiness_check() -> dict[str, str]:
-    """Return application readiness status.
-
-    Returns:
-        A dictionary indicating that the application is ready.
-    """
+    """Return application readiness status."""
     return {"status": "ready"}
