@@ -89,9 +89,8 @@ async def bulk_predict(file: UploadFile = File(...)) -> BulkPredictionResponse:
                 for member in archive.infolist()
                 if (
                     not member.is_dir()
-                    and PurePosixPath(
-                        member.filename.replace("\\", "/")
-                    ).suffix.lower() in SUPPORTED_IMAGE_SUFFIXES
+                    and PurePosixPath(member.filename.replace("\\", "/")).suffix.lower()
+                    in SUPPORTED_IMAGE_SUFFIXES
                 )
             ]
 
