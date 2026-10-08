@@ -87,9 +87,13 @@ async def bulk_predict(file: UploadFile = File(...)) -> BulkPredictionResponse:
             image_members = [
                 member
                 for member in archive.infolist()
-                if not member.is_dir()
-                and PurePosixPath(member.filename.replace("\\", "/")).suffix.lower()
-                in SUPPORTED_IMAGE_SUFFIXES
+                if (
+                    not member.is_dir()
+                    and PurePosixPath(
+                        member.filename.replace("\\", "/")
+                    ).suffix.lower()
+                    in SUPPORTED_IMAGE_SUFFIXES
+                )
             ]
 
             if not image_members:
@@ -101,9 +105,7 @@ async def bulk_predict(file: UploadFile = File(...)) -> BulkPredictionResponse:
             results = []
             for member in image_members:
                 image_bytes = archive.read(member)
-                image_name = PurePosixPath(
-                    member.filename.replace("\\", "/")
-                ).name
+                image_name = PurePosixPath(member.filename.replace("\\", "/")).name
                 suffix = PurePosixPath(image_name).suffix.lower()
 
                 with NamedTemporaryFile(suffix=suffix, delete=False) as temporary_file:
