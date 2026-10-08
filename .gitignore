@@ -40,6 +40,11 @@ dist/
 *.engine
 *.torchscript
 
+# Production model required for Docker deployment
+!models/
+!models/yolo11n-v3/
+!models/yolo11n-v3/best.pt
+
 # Datasets
 data/
 datasets/
@@ -67,3 +72,34 @@ Thumbs.db
 
 # Generated reports
 reports/
+
+# Local test data
+test/
+testing_dataset/
+
+# Generated evaluation artifacts
+evaluation/results/*
+!evaluation/results/v3_independent_test.md
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Local environment
+.env
+.env.*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
