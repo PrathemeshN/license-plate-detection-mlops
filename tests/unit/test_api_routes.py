@@ -38,7 +38,7 @@ def test_predict_success() -> None:
 
     with patch(
         "app.api.routes.inference_service.predict",
-        return_value=mock_response.detections,
+        return_value=mock_response,
     ):
         response = client.post(
             "/api/v1/predict",
@@ -86,7 +86,7 @@ def test_predict_rejects_empty_file() -> None:
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Uploaded image is empty."
+    assert response.json()["detail"] == "Uploaded file is empty."
 
 
 def test_predict_rejects_oversized_file() -> None:
@@ -123,43 +123,27 @@ def _create_test_zip() -> bytes:
 
 def test_bulk_predict_success() -> None:
     """Verify ZIP images are processed individually."""
-    mock_detection = DetectionResponse(
-        class_id=0,
-        class_name="License_Plate",
-        confidence=0.91,
-        bbox=BoundingBoxResponse(
-            x1=10.0,
-            y1=20.0,
-            x2=110.0,
-            y2=120.0,
-        ),
-        review_required=False,
+    mock_response = PredictionResponse(
+        count=1,
+        detections=[
+            DetectionResponse(
+                class_id=0,
+                class_name="License_Plate",
+                confidence=0.91,
+                bbox=BoundingBoxResponse(
+                    x1=10.0,
+                    y1=20.0,
+                    x2=110.0,
+                    y2=120.0,
+                ),
+                review_required=False,
+            )
+        ],
     )
 
     with patch(
         "app.api.routes.inference_service.predict",
-        return_value=[
-            type(
-                "Detection",
-                (),
-                {
-                    "class_id": mock_detection.class_id,
-                    "class_name": mock_detection.class_name,
-                    "confidence": mock_detection.confidence,
-                    "bbox": type(
-                        "BBox",
-                        (),
-                        {
-                            "x1": 10.0,
-                            "y1": 20.0,
-                            "x2": 110.0,
-                            "y2": 120.0,
-                        },
-                    )(),
-                    "review_required": False,
-                },
-            )()
-        ],
+        return_value=mock_response,
     ):
         response = client.post(
             "/api/v1/bulk-predict",
