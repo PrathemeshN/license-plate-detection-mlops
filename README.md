@@ -38,4 +38,10 @@ Training and evaluation dataset files are external and are not stored in this re
 
 ## Not implemented
 
-Azure deployment is not implemented. No Azure resources, credentials, or deployment configuration are included. Azure deployment remains a later project stage.
+GCP deployment is not yet implemented. No GCP resources, credentials, or deployment workflow are assumed to exist. GCP is the sole planned cloud deployment target.
+
+## GCP deployment readiness
+
+See [the GCP Cloud Run deployment guide](docs/deployment/gcp-cloud-run.md) for the proposed Artifact Registry, Cloud Run, and GitHub Actions architecture, owner-provided configuration, security model, cost controls, validation, rollback, and teardown.
+
+Current status: the application and Docker image are implemented locally. Automated CI is defined in `.github/workflows/ci.yml`; results must be checked for the exact commit before release. The GCP architecture is proposed, not provisioned, and the service is not deployed. Browser camera hardware behavior has not been manually verified. Training and evaluation datasets are external and unavailable in this repository.

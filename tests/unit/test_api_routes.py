@@ -1,11 +1,14 @@
 ﻿"""Unit tests for API inference routes."""
 
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
 from zipfile import ZipFile
 
+import pytest
 from fastapi.testclient import TestClient
 
+from app.api.routes import settings as route_settings
 from app.main import app
 from app.schemas.inference import (
     BoundingBoxResponse,
@@ -221,3 +224,89 @@ def test_bulk_predict_rejects_zip_without_images() -> None:
 
     assert response.status_code == 400
     assert response.json()["detail"] == ("ZIP archive contains no supported images.")
+
+
+def test_bulk_predict_rejects_too_many_files(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(route_settings, "max_bulk_files", 1)
+    response = client.post(
+        "/api/v1/bulk-predict",
+        files={"file": ("many.zip", _create_test_zip(), "application/zip")},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "ZIP archive contains too many files."
+
+
+def test_bulk_predict_rejects_excessive_expansion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(route_settings, "max_zip_expanded_size_mb", 1)
+    buffer = BytesIO()
+    with ZipFile(buffer, "w") as archive:
+        archive.writestr("large.jpg", b"x" * (1024 * 1024 + 1))
+
+    response = client.post(
+        "/api/v1/bulk-predict",
+        files={"file": ("expanded.zip", buffer.getvalue(), "application/zip")},
+    )
+
+    assert response.status_code == 413
+    assert "expands" in response.json()["detail"]
+
+
+def test_bulk_predict_rejects_unsafe_archive_path() -> None:
+    buffer = BytesIO()
+    with ZipFile(buffer, "w") as archive:
+        archive.writestr("../outside.jpg", b"image")
+
+    response = client.post(
+        "/api/v1/bulk-predict",
+        files={"file": ("unsafe.zip", buffer.getvalue(), "application/zip")},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "ZIP archive contains an unsafe path."
+
+
+def test_bulk_predict_rejects_oversized_zip(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(route_settings, "max_zip_size_mb", 1)
+    response = client.post(
+        "/api/v1/bulk-predict",
+        files={"file": ("oversized.zip", b"x" * (1024 * 1024 + 1), "application/zip")},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == (
+        "Uploaded ZIP exceeds the maximum allowed size."
+    )
+
+
+def test_predict_rejects_unsupported_image_extension() -> None:
+    response = client.post(
+        "/api/v1/predict",
+        files={"file": ("animation.gif", b"gif", "image/gif")},
+    )
+
+    assert response.status_code == 415
+
+
+def test_predict_rejects_request_over_limit() -> None:
+    response = client.post(
+        "/api/v1/predict",
+        files={"file": ("small.jpg", b"x", "image/jpeg")},
+        headers={"content-length": str(26 * 1024 * 1024 + 1)},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == ("Request exceeds the maximum allowed size.")
+
+
+def test_bulk_frontend_uses_api_response_fields() -> None:
+    frontend = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "Processed ${data.count} image(s)" in frontend
+    assert "item.count" in frontend
+    assert "detection.confidence * 100" in frontend
+    assert "escapeHtml(item.filename)" in frontend
+    assert "data.total_files" not in frontend
+    assert "confidence_percent" not in frontend

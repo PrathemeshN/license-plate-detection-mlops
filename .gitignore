@@ -67,7 +67,7 @@ Thumbs.db
 *.key
 *.crt
 
-# Azure local configuration
+# Local cloud CLI configuration
 .azure/
 
 # Generated reports
@@ -103,3 +103,12 @@ htmlcov/
 # OS/editor files
 .DS_Store
 Thumbs.db
+
+# Local AWS deployment and inference evidence
+/aws_bulk_results/
+/aws-bulk-response.json
+/bulk_test_batches/
+/deployment-evidence/
+/ecs-task-definition.json
+/ecs-task-trust-policy.json
+/docs/deployment/*.bak

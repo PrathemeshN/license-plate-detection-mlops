@@ -920,7 +920,7 @@ function renderBulkResults(results) {
         if (!detection) {
             return `
             <tr class="low-row">
-                <td>${item.filename}</td>
+                <td>${escapeHtml(item.filename)}</td>
                 <td>0</td>
                 <td class="warning">No Detection</td>
                 <td>Review</td>
@@ -931,7 +931,7 @@ function renderBulkResults(results) {
 
         return `
         <tr class="${detection.review_required ? "low-row" : ""}">
-            <td>${item.filename}</td>
+            <td>${escapeHtml(item.filename)}</td>
             <td>${item.count}</td>
             <td>${confidence.toFixed(1)}%</td>
             <td class="${detection.review_required ? "warning" : "success"}">
@@ -952,6 +952,16 @@ function renderBulkResults(results) {
             </thead>
             <tbody>${rows}</tbody>
         </table>`;
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+    })[character]);
 }
 
 function exportCSV() {

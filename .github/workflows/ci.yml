@@ -9,6 +9,7 @@ on:
   pull_request:
     branches:
       - main
+      - "feature/**"
 
 jobs:
   quality:
@@ -71,13 +72,14 @@ jobs:
         run: |
           docker run -d \
             --name license-plate-v3 \
-            -p 8000:8000 \
+            -e PORT=8081 \
+            -p 8081:8081 \
             license-plate-detector:v3
 
       - name: Wait for API
         run: |
           for i in {1..30}; do
-            if curl --fail --silent http://localhost:8000/health; then
+            if curl --fail --silent http://localhost:8081/health; then
               echo
               echo "Health check passed."
               exit 0
@@ -91,13 +93,28 @@ jobs:
 
       - name: Readiness check
         run: |
-          curl --fail --silent http://localhost:8000/ready
+          curl --fail --silent http://localhost:8081/ready
           echo
 
       - name: Verify OpenAPI
         run: |
-          curl --fail --silent http://localhost:8000/openapi.json > openapi.json
-          python -c "import json; d=json.load(open('openapi.json')); assert '/api/v1/predict' in d['paths']; print('OpenAPI verification passed.')"
+          curl --fail --silent http://localhost:8081/openapi.json > openapi.json
+          python -c "import json; d=json.load(open('openapi.json')); assert '/api/v1/predict' in d['paths'] and '/api/v1/bulk-predict' in d['paths']; print('OpenAPI verification passed.')"
+
+      - name: Verify single and bulk inference
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          from PIL import Image
+
+          Image.new("RGB", (640, 480), color="white").save("smoke.png")
+          with ZipFile("smoke.zip", "w") as archive:
+              archive.write("smoke.png")
+          PY
+          curl --fail --silent --show-error -F file=@smoke.png http://localhost:8081/api/v1/predict > single.json
+          curl --fail --silent --show-error -F file=@smoke.zip http://localhost:8081/api/v1/bulk-predict > bulk.json
+          python -c "import json; one=json.load(open('single.json')); bulk=json.load(open('bulk.json')); assert 'count' in one and 'detections' in one; assert bulk['count']==1 and bulk['results'][0]['filename']=='smoke.png'; print('Single and bulk inference smoke checks passed.')"
 
       - name: Container logs
         if: always()

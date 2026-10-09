@@ -51,13 +51,23 @@ class Settings(BaseSettings):
         gt=0,
     )
     max_zip_size_mb: int = Field(
-        default=50,
+        default=25,
         alias="MAX_ZIP_SIZE_MB",
         gt=0,
     )
     max_bulk_files: int = Field(
         default=100,
         alias="MAX_BULK_FILES",
+        gt=0,
+    )
+    max_zip_expanded_size_mb: int = Field(
+        default=200,
+        alias="MAX_ZIP_EXPANDED_SIZE_MB",
+        gt=0,
+    )
+    max_request_size_mb: int = Field(
+        default=26,
+        alias="MAX_REQUEST_SIZE_MB",
         gt=0,
     )
 
