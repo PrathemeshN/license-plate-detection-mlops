@@ -36,12 +36,22 @@ The tracked model is `models/yolo11n-v3/best.pt` (YOLO11n V3). Its training argu
 
 Training and evaluation dataset files are external and are not stored in this repository. The model arguments and evaluation script contain paths referring to the original dataset environment; run dataset-dependent evaluation only when the actual dataset is available at the configured paths. The independent evaluation report is in `evaluation/results/v3_independent_test.md`.
 
-## Not implemented
+## AWS deployment
 
-GCP deployment is not yet implemented. No GCP resources, credentials, or deployment workflow are assumed to exist. GCP is the sole planned cloud deployment target.
+AWS ECS with Fargate is the intended deployment platform. The repository contains an AWS deployment guide at [AWS ECS Fargate Deployment Guide](docs/deployment/aws-ecs-fargate.md).
 
-## GCP deployment readiness
+The guide records a previous deployment and test run, but current live AWS service health, the running image digest, task-definition revision, and security-group configuration must be checked against AWS before claiming a release is currently active or up to date. Follow the guide's verification steps before a new deployment. The current documented testing architecture uses a public task IP restricted to an authorized tester IP and HTTP without TLS termination; it is not production-ready for unrestricted or sensitive traffic.
 
-See [the GCP Cloud Run deployment guide](docs/deployment/gcp-cloud-run.md) for the proposed Artifact Registry, Cloud Run, and GitHub Actions architecture, owner-provided configuration, security model, cost controls, validation, rollback, and teardown.
+## CI and release process
 
-Current status: the application and Docker image are implemented locally. Automated CI is defined in `.github/workflows/ci.yml`; results must be checked for the exact commit before release. The GCP architecture is proposed, not provisioned, and the service is not deployed. Browser camera hardware behavior has not been manually verified. Training and evaluation datasets are external and unavailable in this repository.
+Automated CI is defined in `.github/workflows/ci.yml`. It runs code-quality checks, unit tests with a 70% coverage threshold, security checks, a Docker build, health/readiness checks, OpenAPI validation, and single/bulk inference smoke tests.
+
+Merge release changes through a pull request and confirm checks for the exact commit. A green CI run validates the tested commit and container workflow; it does not by itself prove that the live AWS service has been updated or that production security controls are complete.
+
+## Current limitations
+
+- Live AWS deployment status and deployed image identity need verification before each release.
+- The documented direct-public-IP test setup does not provide HTTPS termination or application authentication.
+- Browser camera behavior has not been manually verified on physical hardware.
+- Training and evaluation datasets are external and unavailable in this repository; dataset-dependent evaluation requires those datasets at the expected paths.
+- Precision, recall, false positives, false negatives, and mAP must be established using annotated ground-truth data. Inference counts and confidence scores alone are not model-accuracy measurements.
