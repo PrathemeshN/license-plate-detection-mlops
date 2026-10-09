@@ -1,8 +1,8 @@
 ﻿# AWS ECS Fargate Deployment Guide
 
-## 1. Deployment status
+> **Status note:** This guide contains observations from a previous deployment and test session. The live AWS service, running image digest, task-definition revision, task count, logs, and security-group rules have not been verified as of this documentation revision. Run the verification commands below before relying on these details for a current release.
 
-The license-plate detection API has been deployed to Amazon ECS using AWS Fargate in `ap-south-1` (Mumbai).
+## 1. Previously recorded deployment snapshot
 
 Validated components:
 - Private Amazon ECR repository for the container image.
@@ -16,7 +16,7 @@ Validated components:
 - Single-image inference: `POST /api/v1/predict`.
 - ZIP bulk inference: `POST /api/v1/bulk-predict`.
 
-The service reached ECS steady state with one running task. Health and readiness checks returned successful responses. Single-image inference returned HTTP 200. Bulk inference returned HTTP 200 for nine batches covering 433 images.
+During the earlier test session, the service reportedly reached ECS steady state with one running task. Health and readiness checks returned successful responses. Single-image inference returned HTTP 200. Bulk inference returned HTTP 200 for nine batches covering 433 images. These are historical results, not a statement of current live status.
 
 These results validate deployment and API execution. They do not independently establish precision, recall, or model accuracy.
 
@@ -31,7 +31,7 @@ These results validate deployment and API execution. They do not independently e
 
 No load balancer or HTTPS termination is configured in the current testing setup.
 
-## 3. Current resource configuration
+## 3. Resource configuration recorded during the prior deployment
 
 | Resource | Configuration |
 | --- | --- |
@@ -48,11 +48,11 @@ No load balancer or HTTPS termination is configured in the current testing setup
 | CloudWatch log retention | 7 days |
 | Desired task count | 1 |
 
-The deployed image tag is `v3`. For future releases, record the exact image digest and use immutable image identity for deployment and rollback.
+The earlier deployment used image tag `v3`. The currently running image digest has not been verified. For a future release, record the exact image digest and use immutable image identity for deployment and rollback.
 
 ## 4. Access and security
 
-The current service is intended for restricted testing, not unrestricted production access.
+The previously tested service configuration was intended for restricted testing, not unrestricted production access. Verify the live security-group rules before relying on this restriction.
 
 - Keep inbound TCP port 8000 restricted to the authorized tester's current public IP `/32`.
 - Update the security-group rule when the tester's public IP changes.
