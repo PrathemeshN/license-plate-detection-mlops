@@ -24,3 +24,12 @@ def test_upload_limits_are_positive() -> None:
     assert settings.max_image_size_mb > 0
     assert settings.max_zip_size_mb > 0
     assert settings.max_bulk_files > 0
+
+
+def test_default_model_configuration() -> None:
+    """Verify the default model configuration."""
+    settings = Settings()
+
+    assert settings.model_name == "license-plate-detector"
+    assert settings.model_version == "1.0.0"
+    assert settings.model_path == "models/yolo11n-v3/best.pt"

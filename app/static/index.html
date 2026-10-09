@@ -1,0 +1,836 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlateVision | License Plate Detection</title>
+
+<style>
+:root {
+    --bg: #080b12;
+    --panel: #111722;
+    --panel-2: #171e2b;
+    --border: #263044;
+    --text: #edf2f7;
+    --muted: #8994a7;
+    --accent: #43e6a0;
+    --accent-2: #4da3ff;
+    --warning: #ffbf69;
+    --danger: #ff6678;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(circle at top right, #14253c 0, transparent 35%),
+        var(--bg);
+    color: var(--text);
+    font-family: Inter, Segoe UI, Arial, sans-serif;
+}
+
+header {
+    height: 72px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(8, 11, 18, .88);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #071018;
+    font-weight: 900;
+}
+
+.brand h1 {
+    margin: 0;
+    font-size: 19px;
+}
+
+.brand span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.status {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    margin-right: 7px;
+}
+
+main {
+    max-width: 1400px;
+    margin: auto;
+    padding: 28px;
+}
+
+.hero {
+    margin-bottom: 24px;
+}
+
+.hero h2 {
+    margin: 0 0 7px;
+    font-size: 30px;
+}
+
+.hero p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.tab {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    padding: 11px 18px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.tab.active {
+    color: var(--text);
+    border-color: var(--accent);
+    background: #12251f;
+}
+
+.panel {
+    background: rgba(17, 23, 34, .94);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+}
+
+.mode {
+    display: none;
+}
+
+.mode.active {
+    display: block;
+}
+
+.upload-zone {
+    border: 1px dashed #3b4960;
+    border-radius: 14px;
+    padding: 42px;
+    text-align: center;
+    background: #0c111a;
+    cursor: pointer;
+}
+
+.upload-zone:hover {
+    border-color: var(--accent-2);
+}
+
+.upload-zone h3 {
+    margin: 8px 0;
+}
+
+.upload-zone p {
+    color: var(--muted);
+}
+
+input[type=file] {
+    display: none;
+}
+
+.btn {
+    border: 0;
+    border-radius: 9px;
+    padding: 11px 18px;
+    cursor: pointer;
+    font-weight: 700;
+    background: var(--accent);
+    color: #06100d;
+}
+
+.btn.secondary {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn.danger {
+    background: var(--danger);
+}
+
+.workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, .7fr);
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.viewer {
+    position: relative;
+    background: #05070b;
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 430px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.viewer img,
+.viewer video,
+.viewer canvas {
+    max-width: 100%;
+    max-height: 650px;
+}
+
+.viewer canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.placeholder {
+    color: var(--muted);
+    text-align: center;
+}
+
+.side h3 {
+    margin-top: 0;
+}
+
+.metric {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: var(--panel-2);
+}
+
+.metric .label {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.metric .value {
+    font-size: 22px;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+.badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.badge.good {
+    background: #123b2b;
+    color: var(--accent);
+}
+
+.badge.warn {
+    background: #493719;
+    color: var(--warning);
+}
+
+.badge.none {
+    background: #34202a;
+    color: #ff91a0;
+}
+
+.camera-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 18px;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-size: 13px;
+}
+
+th {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.review {
+    color: var(--warning);
+    font-weight: 800;
+}
+
+.empty {
+    padding: 30px;
+    text-align: center;
+    color: var(--muted);
+}
+
+footer {
+    margin-top: 30px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .workspace {
+        grid-template-columns: 1fr;
+    }
+
+    header {
+        padding: 0 16px;
+    }
+
+    main {
+        padding: 16px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="brand">
+        <div class="logo">LP</div>
+        <div>
+            <h1>PlateVision</h1>
+            <span>License Plate Detection Platform</span>
+        </div>
+    </div>
+
+    <div class="status">
+        <span><span class="dot"></span>API Online</span>
+        <span>YOLO11n V3</span>
+    </div>
+</header>
+
+<main>
+
+<section class="hero">
+    <h2>License Plate Intelligence</h2>
+    <p>Detect, review and analyze vehicle license plates from images, batches or a live camera.</p>
+</section>
+
+<div class="tabs">
+    <button class="tab active" onclick="switchMode('single', this)">Single Image</button>
+    <button class="tab" onclick="switchMode('bulk', this)">Bulk ZIP</button>
+    <button class="tab" onclick="switchMode('camera', this)">Live Camera</button>
+</div>
+
+<section id="single" class="mode active">
+    <div class="panel">
+        <label class="upload-zone" for="singleFile">
+            <div style="font-size:34px">◈</div>
+            <h3>Drop vehicle image here</h3>
+            <p>PNG, JPG, JPEG or WebP</p>
+            <button type="button" class="btn" onclick="event.preventDefault(); document.getElementById('singleFile').click()">
+                Select Image
+            </button>
+        </label>
+
+        <input id="singleFile" type="file" accept="image/*">
+
+        <div class="workspace">
+            <div class="viewer" id="singleViewer">
+                <div class="placeholder">Detection preview will appear here</div>
+                <img id="singleImage" hidden>
+                <canvas id="singleCanvas"></canvas>
+            </div>
+
+            <div class="panel side">
+                <h3>Detection Result</h3>
+                <div class="metric">
+                    <div class="label">PLATES DETECTED</div>
+                    <div class="value" id="singleCount">0</div>
+                </div>
+                <div id="singleResults">
+                    <div class="empty">Upload an image to begin.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="bulk" class="mode">
+    <div class="panel">
+        <label class="upload-zone" for="bulkFile">
+            <div style="font-size:34px">▦</div>
+            <h3>Upload detection batch</h3>
+            <p>ZIP archive containing vehicle images</p>
+            <button type="button" class="btn" onclick="event.preventDefault(); document.getElementById('bulkFile').click()">
+                Select ZIP
+            </button>
+        </label>
+
+        <input id="bulkFile" type="file" accept=".zip">
+
+        <div id="bulkResults" style="display:none">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px">
+                <div>
+                    <strong id="bulkSummary"></strong>
+                </div>
+                <button class="btn secondary" onclick="downloadCSV()">Export CSV</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Status</th>
+                        <th>Confidence</th>
+                        <th>Bounding Box</th>
+                        <th>Review</th>
+                    </tr>
+                </thead>
+                <tbody id="bulkTable"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section id="camera" class="mode">
+    <div class="panel">
+        <div class="workspace">
+            <div>
+                <div class="viewer" id="cameraViewer">
+                    <video id="cameraVideo" autoplay playsinline muted></video>
+                    <canvas id="cameraCanvas"></canvas>
+                    <div id="cameraPlaceholder" class="placeholder">
+                        Camera is stopped
+                    </div>
+                </div>
+
+                <div class="camera-controls">
+                    <button class="btn" id="startCamera">Start Camera</button>
+                    <button class="btn danger" id="stopCamera">Stop Camera</button>
+                </div>
+            </div>
+
+            <div class="panel side">
+                <h3>Live Detection</h3>
+
+                <div class="metric">
+                    <div class="label">STATUS</div>
+                    <div class="value" id="cameraStatus">OFFLINE</div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">PLATES</div>
+                    <div class="value" id="cameraCount">0</div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">INFERENCE LOOP</div>
+                    <div class="value" id="cameraFps">0 FPS</div>
+                </div>
+
+                <div id="cameraDetection" class="empty">
+                    Start the camera to begin detection.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    PlateVision • YOLO11n V3 • Confidence threshold 38% • Dockerized inference
+</footer>
+
+</main>
+
+<script>
+const API = "/api/v1";
+let stream = null;
+let cameraRunning = false;
+let lastBulkResults = [];
+
+function switchMode(mode, button) {
+    document.querySelectorAll(".mode").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    document.getElementById(mode).classList.add("active");
+    button.classList.add("active");
+
+    if (mode !== "camera") stopCamera();
+}
+
+function drawDetections(canvas, image, detections) {
+    const rect = image.getBoundingClientRect();
+    const scaleX = rect.width / image.naturalWidth;
+    const scaleY = rect.height / image.naturalHeight;
+
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    detections.forEach(d => {
+        const b = d.bbox;
+        const x = b.x1 * scaleX;
+        const y = b.y1 * scaleY;
+        const w = (b.x2 - b.x1) * scaleX;
+        const h = (b.y2 - b.y1) * scaleY;
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = d.review_required ? "#ffbf69" : "#43e6a0";
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = d.review_required ? "#ffbf69" : "#43e6a0";
+        ctx.font = "bold 14px Segoe UI";
+        ctx.fillText(
+            `${(d.confidence * 100).toFixed(1)}%`,
+            x,
+            Math.max(16, y - 6)
+        );
+    });
+}
+
+document.getElementById("singleFile").addEventListener("change", async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const image = document.getElementById("singleImage");
+    image.src = URL.createObjectURL(file);
+    image.hidden = false;
+
+    image.onload = async () => {
+        const form = new FormData();
+        form.append("file", file);
+
+        const response = await fetch(`${API}/predict`, {
+            method: "POST",
+            body: form
+        });
+
+        const data = await response.json();
+
+        document.getElementById("singleCount").textContent = data.count;
+
+        drawDetections(
+            document.getElementById("singleCanvas"),
+            image,
+            data.detections
+        );
+
+        const results = document.getElementById("singleResults");
+
+        if (!data.count) {
+            results.innerHTML =
+                '<div class="badge none">NO PLATE DETECTED</div>';
+            return;
+        }
+
+        results.innerHTML = data.detections.map((d, i) => `
+            <div class="metric">
+                <div class="label">PLATE ${i + 1}</div>
+                <div class="value">${(d.confidence * 100).toFixed(1)}%</div>
+                <span class="badge ${d.review_required ? "warn" : "good"}">
+                    ${d.review_required ? "REVIEW NEEDED" : "CONFIDENT"}
+                </span>
+            </div>
+        `).join("");
+    };
+});
+
+document.getElementById("bulkFile").addEventListener("change", async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const form = new FormData();
+    form.append("file", file);
+
+    document.getElementById("bulkSummary").textContent = "Processing...";
+
+    const response = await fetch(`${API}/bulk-predict`, {
+        method: "POST",
+        body: form
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        alert(data.detail || "Bulk processing failed.");
+        return;
+    }
+
+    lastBulkResults = data.results;
+
+    document.getElementById("bulkResults").style.display = "block";
+
+    const detections = data.results.reduce(
+        (sum, x) => sum + x.count,
+        0
+    );
+
+    document.getElementById("bulkSummary").textContent =
+        `${data.total_files} files processed • ${detections} plates detected`;
+
+    document.getElementById("bulkTable").innerHTML =
+        data.results.map(row => {
+            const detection = row.detections[0];
+
+            if (!detection) {
+                return `
+                    <tr>
+                        <td>${row.filename}</td>
+                        <td><span class="badge none">NO PLATE</span></td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                `;
+            }
+
+            const b = detection.bbox;
+
+            return `
+                <tr>
+                    <td>${row.filename}</td>
+                    <td><span class="badge good">DETECTED</span></td>
+                    <td>${detection.confidence_percent}%</td>
+                    <td>
+                        ${b.x1.toFixed(1)},
+                        ${b.y1.toFixed(1)},
+                        ${b.x2.toFixed(1)},
+                        ${b.y2.toFixed(1)}
+                    </td>
+                    <td class="${detection.review_required ? "review" : ""}">
+                        ${detection.review_required ? "REVIEW" : "PASS"}
+                    </td>
+                </tr>
+            `;
+        }).join("");
+});
+
+function downloadCSV() {
+    const rows = [
+        ["filename", "status", "confidence_percent", "x1", "y1", "x2", "y2", "review"]
+    ];
+
+    lastBulkResults.forEach(row => {
+        if (!row.detections.length) {
+            rows.push([row.filename, "no plate detected", "", "", "", "", "", ""]);
+            return;
+        }
+
+        row.detections.forEach(d => {
+            rows.push([
+                row.filename,
+                "detected",
+                d.confidence_percent,
+                d.bbox.x1,
+                d.bbox.y1,
+                d.bbox.x2,
+                d.bbox.y2,
+                d.review_required ? "REVIEW" : "PASS"
+            ]);
+        });
+    });
+
+    const csv = rows.map(row =>
+        row.map(x => `"${String(x).replaceAll('"', '""')}"`).join(",")
+    ).join("\n");
+
+    const blob = new Blob([csv], {type: "text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "license_plate_results.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+document.getElementById("startCamera").addEventListener("click", async () => {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: {ideal: 1280},
+                height: {ideal: 720}
+            },
+            audio: false
+        });
+
+        const video = document.getElementById("cameraVideo");
+        video.srcObject = stream;
+
+        cameraRunning = true;
+        document.getElementById("cameraStatus").textContent = "LIVE";
+        document.getElementById("cameraPlaceholder").style.display = "none";
+
+        runCameraLoop();
+    } catch (error) {
+        alert("Camera access failed: " + error.message);
+    }
+});
+
+document.getElementById("stopCamera").addEventListener("click", stopCamera);
+
+function stopCamera() {
+    cameraRunning = false;
+
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+
+    document.getElementById("cameraVideo").srcObject = null;
+    document.getElementById("cameraStatus").textContent = "OFFLINE";
+    document.getElementById("cameraCount").textContent = "0";
+    document.getElementById("cameraFps").textContent = "0 FPS";
+    document.getElementById("cameraPlaceholder").style.display = "block";
+}
+
+async function runCameraLoop() {
+    const video = document.getElementById("cameraVideo");
+    const canvas = document.createElement("canvas");
+    const overlay = document.getElementById("cameraCanvas");
+
+    while (cameraRunning) {
+        if (video.readyState < 2) {
+            await new Promise(r => setTimeout(r, 200));
+            continue;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0);
+
+        const blob = await new Promise(resolve =>
+            canvas.toBlob(resolve, "image/jpeg", 0.75)
+        );
+
+        if (!blob) continue;
+
+        const form = new FormData();
+        form.append("file", blob, "camera.jpg");
+
+        const start = performance.now();
+
+        try {
+            const response = await fetch(`${API}/predict`, {
+                method: "POST",
+                body: form
+            });
+
+            const data = await response.json();
+
+            const rect = video.getBoundingClientRect();
+
+            overlay.width = rect.width;
+            overlay.height = rect.height;
+
+            const scaleX = rect.width / video.videoWidth;
+            const scaleY = rect.height / video.videoHeight;
+
+            const octx = overlay.getContext("2d");
+            octx.clearRect(0, 0, overlay.width, overlay.height);
+
+            data.detections.forEach(d => {
+                const b = d.bbox;
+
+                octx.strokeStyle = d.review_required
+                    ? "#ffbf69"
+                    : "#43e6a0";
+
+                octx.lineWidth = 3;
+
+                octx.strokeRect(
+                    b.x1 * scaleX,
+                    b.y1 * scaleY,
+                    (b.x2 - b.x1) * scaleX,
+                    (b.y2 - b.y1) * scaleY
+                );
+
+                octx.fillStyle = d.review_required
+                    ? "#ffbf69"
+                    : "#43e6a0";
+
+                octx.font = "bold 14px Segoe UI";
+
+                octx.fillText(
+                    `${(d.confidence * 100).toFixed(1)}%`,
+                    b.x1 * scaleX,
+                    Math.max(16, b.y1 * scaleY - 6)
+                );
+            });
+
+            document.getElementById("cameraCount").textContent = data.count;
+
+            document.getElementById("cameraDetection").innerHTML =
+                data.count
+                    ? data.detections.map(d => `
+                        <div class="metric">
+                            <div class="label">LICENSE PLATE</div>
+                            <div class="value">
+                                ${(d.confidence * 100).toFixed(1)}%
+                            </div>
+                            <span class="badge ${d.review_required ? "warn" : "good"}">
+                                ${d.review_required ? "REVIEW" : "DETECTED"}
+                            </span>
+                        </div>
+                    `).join("")
+                    : '<div class="badge none">NO PLATE DETECTED</div>';
+
+            const elapsed = performance.now() - start;
+            document.getElementById("cameraFps").textContent =
+                `${(1000 / Math.max(elapsed, 1)).toFixed(1)} FPS`;
+
+        } catch (error) {
+            document.getElementById("cameraStatus").textContent = "ERROR";
+        }
+
+        await new Promise(r => setTimeout(r, 350));
+    }
+}
+</script>
+
+</body>
+</html>
