@@ -90,9 +90,8 @@ jobs:
           trap rollback_on_error EXIT
 
           jq --arg image "$IMAGE_URI" '
-            .taskDefinition
-            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
-                  .compatibilities, .registeredAt, .registeredBy)
+            del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                .compatibilities, .registeredAt, .registeredBy)
             | .containerDefinitions[0].image = $image
           ' <<<"$previous_task" > task-definition.json
           next="$(aws ecs register-task-definition --cli-input-json file://task-definition.json --query 'taskDefinition.taskDefinitionArn' --output text)"
