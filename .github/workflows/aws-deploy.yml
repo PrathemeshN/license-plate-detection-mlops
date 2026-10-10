@@ -1,0 +1,140 @@
+name: AWS ECS deployment
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ap-south-1
+      ECS_CLUSTER: license-plate-cluster
+      ECS_SERVICE: license-plate-api
+      ECR_REPOSITORY: license-plate-detector
+      AWS_ACCOUNT_ID: "832474135577"
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+      AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+      DEPLOYMENT_API_URL: ${{ vars.DEPLOYMENT_API_URL }}
+    steps:
+      - name: Require preconfigured deployment role
+        shell: bash
+        run: |
+          if [[ -z "$AWS_DEPLOY_ROLE_ARN" ]]; then
+            echo "AWS_DEPLOY_ROLE_ARN is not configured. Set it to an existing least-privilege GitHub OIDC role restricted to this repository's main branch."
+            exit 1
+          fi
+
+      - name: Check out CI-approved commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Configure short-lived AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-south-1
+          role-session-name: deploy-${{ github.event.workflow_run.head_sha }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push immutable image
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${RELEASE_SHA}"
+          docker build --tag "$image" .
+          docker push "$image"
+          digest="$(aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$RELEASE_SHA" --query 'imageDetails[0].imageDigest' --output text)"
+          echo "uri=$image" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Register, deploy, verify, and roll back on failure
+        id: deploy
+        shell: bash
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+          EXPECTED_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          previous="$(aws ecs describe-services --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" --query 'services[0].taskDefinition' --output text)"
+          previous_task="$(aws ecs describe-task-definition --task-definition "$previous" --query 'taskDefinition' --output json)"
+          previous_image="$(jq -r '.containerDefinitions[0].image' <<<"$previous_task")"
+          echo "previous_task_definition=$previous" >> "$GITHUB_OUTPUT"
+          echo "previous_image=$previous_image" >> "$GITHUB_OUTPUT"
+
+          deployment_started=false
+          rollback_on_error() {
+            result=$?
+            if [[ $result -ne 0 && "$deployment_started" == true ]]; then
+              echo "Deployment verification failed; restoring $previous"
+              aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" --task-definition "$previous" >/dev/null
+              aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
+              echo "Rollback completed to $previous"
+            fi
+            exit "$result"
+          }
+          trap rollback_on_error EXIT
+
+          jq --arg image "$IMAGE_URI" '
+            .taskDefinition
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy)
+            | .containerDefinitions[0].image = $image
+          ' <<<"$previous_task" > task-definition.json
+          next="$(aws ecs register-task-definition --cli-input-json file://task-definition.json --query 'taskDefinition.taskDefinitionArn' --output text)"
+          echo "task_definition=$next" >> "$GITHUB_OUTPUT"
+
+          deployment_started=true
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" --task-definition "$next" >/dev/null
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
+
+          tasks="$(aws ecs list-tasks --cluster "$ECS_CLUSTER" --service-name "$ECS_SERVICE" --desired-status RUNNING --query 'taskArns' --output json)"
+          task_arn="$(jq -r '.[0] // empty' <<<"$tasks")"
+          [[ -n "$task_arn" ]]
+          task="$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$task_arn" --query 'tasks[0]' --output json)"
+          actual_task="$(jq -r '.taskDefinitionArn' <<<"$task")"
+          actual_digest="$(jq -r '.containers[0].imageDigest' <<<"$task")"
+          [[ "$actual_task" == "$next" ]]
+          [[ "$actual_digest" == "$EXPECTED_DIGEST" ]]
+          [[ "$(jq -r '.containers[0].healthStatus' <<<"$task")" == "HEALTHY" ]]
+
+          if [[ -n "$DEPLOYMENT_API_URL" ]]; then
+            base="${DEPLOYMENT_API_URL%/}"
+            curl --fail --silent --show-error "$base/health"
+            curl --fail --silent --show-error "$base/ready"
+            curl --fail --silent --show-error "$base/openapi.json" -o openapi.json
+            python -c "import json; d=json.load(open('openapi.json')); assert '/api/v1/predict' in d['paths'] and '/api/v1/bulk-predict' in d['paths']"
+            python -c "from PIL import Image; Image.new('RGB',(640,480),'white').save('smoke.png'); from zipfile import ZipFile; z=ZipFile('smoke.zip','w'); z.write('smoke.png'); z.close()"
+            curl --fail --silent --show-error -F file=@smoke.png "$base/api/v1/predict" -o single.json
+            curl --fail --silent --show-error -F file=@smoke.zip "$base/api/v1/bulk-predict" -o bulk.json
+            python -c "import json; a=json.load(open('single.json')); b=json.load(open('bulk.json')); assert 'count' in a and 'detections' in a and b['count']==1 and b['results'][0]['filename']=='smoke.png'"
+          else
+            echo "DEPLOYMENT_API_URL is not configured; external API checks were skipped. ECS health and image identity passed."
+          fi
+
+          echo "Deployment verified: commit=$RELEASE_SHA image=$IMAGE_URI digest=$actual_digest taskDefinition=$actual_task"
+          trap - EXIT
+
+      - name: Report deployment outcome
+        if: always()
+        run: |
+          echo "Candidate commit: $RELEASE_SHA"
+          echo "Image: ${{ steps.image.outputs.uri }}"
+          echo "Image digest: ${{ steps.image.outputs.digest }}"
+          echo "Task definition: ${{ steps.deploy.outputs.task_definition }}"
+          echo "Previous task definition: ${{ steps.deploy.outputs.previous_task_definition }}"
+          echo "Previous image: ${{ steps.deploy.outputs.previous_image }}"

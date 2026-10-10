@@ -1,4 +1,5 @@
-﻿import json
+﻿import argparse
+import json
 import time
 from pathlib import Path
 
@@ -77,12 +78,30 @@ def load_ground_truth(label_path, width, height):
     return boxes
 
 
-def main():
+def main(output_dir: Path = Path("evaluation/results")) -> None:
+    if not MODEL_PATH.is_file():
+        raise SystemExit(f"Model weights not found: {MODEL_PATH}")
+    if not IMAGE_DIR.is_dir() or not LABEL_DIR.is_dir():
+        raise SystemExit(
+            "Evaluation dataset is unavailable. Expected image and label folders at "
+            f"{IMAGE_DIR} and {LABEL_DIR}."
+        )
+
     images = sorted(
         p
         for p in IMAGE_DIR.iterdir()
         if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}
     )
+    if not images:
+        raise SystemExit(f"No supported evaluation images found in {IMAGE_DIR}.")
+    missing_labels = [
+        path.stem for path in images if not (LABEL_DIR / f"{path.stem}.txt").is_file()
+    ]
+    if missing_labels:
+        preview = ", ".join(missing_labels[:5])
+        raise SystemExit(
+            f"Missing labels for {len(missing_labels)} evaluation image(s): {preview}"
+        )
 
     print("=" * 70)
     print("YOLO11n V3 HOLDOUT EVALUATION")
@@ -258,7 +277,6 @@ def main():
         "images_with_multiple_predictions": images_with_multiple_predictions,
     }
 
-    output_dir = Path("evaluation/results")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     (output_dir / "v3_holdout_metrics.json").write_text(json.dumps(results, indent=2))
@@ -290,4 +308,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Evaluate YOLO11n V3 on the holdout set."
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("evaluation/results"),
+        help="Directory for v3_holdout_metrics.json and v3_per_image.json.",
+    )
+    arguments = parser.parse_args()
+    main(output_dir=arguments.output_dir)

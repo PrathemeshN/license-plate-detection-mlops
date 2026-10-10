@@ -1,9 +1,10 @@
-pytest
-pytest-cov
-ruff
-black
-mypy
-bandit
-pip-audit
-httpx
-types-PyYAML
+--constraint constraints-runtime.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+ruff==0.16.10
+black==26.10.0
+mypy==2.4.0
+bandit==1.9.4
+pip-audit==2.10.1
+httpx==0.28.1
+types-PyYAML==6.0.12.20260906

@@ -531,12 +531,19 @@ input[type="file"] {
     display: block;
 
     width: 100%;
-    min-height: 360px;
-
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
 }
 
-#cameraCanvas {
+.camera-wrap #cameraCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#cameraFrameCanvas {
     display: none;
 }
 
@@ -758,9 +765,10 @@ tbody tr:hover {
 
     <div class="camera-wrap">
         <video id="video" autoplay playsinline></video>
+        <canvas id="cameraCanvas"></canvas>
     </div>
 
-    <canvas id="cameraCanvas"></canvas>
+    <canvas id="cameraFrameCanvas"></canvas>
 
     <div class="camera-status" id="cameraStatus">
         Camera stopped.
@@ -776,12 +784,15 @@ tbody tr:hover {
 
 </main>
 
+<script src="/static/bulk-results.js"></script>
 <script>
 const API = "/api/v1";
 let bulkData = [];
 let cameraStream = null;
 let cameraTimer = null;
 let cameraBusy = false;
+let cameraStarting = false;
+let cameraGeneration = 0;
 
 function showTab(id, button) {
     document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
@@ -914,31 +925,7 @@ document.getElementById("zipInput").addEventListener("change", async function() 
 });
 
 function renderBulkResults(results) {
-    const rows = results.map(item => {
-        const detection = item.detections?.[0];
-
-        if (!detection) {
-            return `
-            <tr class="low-row">
-                <td>${escapeHtml(item.filename)}</td>
-                <td>0</td>
-                <td class="warning">No Detection</td>
-                <td>Review</td>
-            </tr>`;
-        }
-
-        const confidence = detection.confidence * 100;
-
-        return `
-        <tr class="${detection.review_required ? "low-row" : ""}">
-            <td>${escapeHtml(item.filename)}</td>
-            <td>${item.count}</td>
-            <td>${confidence.toFixed(1)}%</td>
-            <td class="${detection.review_required ? "warning" : "success"}">
-                ${detection.review_required ? "Review Needed" : "Accepted"}
-            </td>
-        </tr>`;
-    }).join("");
+    const rows = BulkResults.renderBulkRows(results);
 
     document.getElementById("bulkResults").innerHTML = `
         <table>
@@ -946,6 +933,7 @@ function renderBulkResults(results) {
                 <tr>
                     <th>Filename</th>
                     <th>Detections</th>
+                    <th>Bounding box (x1, y1, x2, y2)</th>
                     <th>Confidence</th>
                     <th>Status</th>
                 </tr>
@@ -954,35 +942,8 @@ function renderBulkResults(results) {
         </table>`;
 }
 
-function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, character => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        "\"": "&quot;",
-        "'": "&#39;"
-    })[character]);
-}
-
 function exportCSV() {
-    const rows = [
-        ["Filename", "Detections", "Confidence", "Status"]
-    ];
-
-    bulkData.forEach(item => {
-        const d = item.detections?.[0];
-
-        rows.push([
-            item.filename,
-            item.count || 0,
-            d ? `${(d.confidence * 100).toFixed(2)}%` : "",
-            d ? (d.review_required ? "Review Needed" : "Accepted") : "No Detection"
-        ]);
-    });
-
-    const csv = rows.map(row =>
-        row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")
-    ).join("\n");
+    const csv = BulkResults.buildBulkCsv(bulkData);
 
     const blob = new Blob([csv], {type: "text/csv"});
     const url = URL.createObjectURL(blob);
@@ -996,10 +957,21 @@ function exportCSV() {
 }
 
 async function startCamera() {
-    if (cameraStream) return;
+    if (cameraStream || cameraStarting) return;
+    const status = document.getElementById("cameraStatus");
+    if (!window.isSecureContext) {
+        status.textContent = "Camera access requires HTTPS (or localhost).";
+        return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+        status.textContent = "This browser does not support camera access.";
+        return;
+    }
 
+    cameraStarting = true;
+    const generation = ++cameraGeneration;
     try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: {ideal: "environment"},
                 width: {ideal: 1280},
@@ -1007,20 +979,34 @@ async function startCamera() {
             },
             audio: false
         });
+        if (!cameraStarting || generation !== cameraGeneration) {
+            stream.getTracks().forEach(track => track.stop());
+            return;
+        }
+        cameraStream = stream;
 
         document.getElementById("video").srcObject = cameraStream;
+        cameraStream.getVideoTracks()[0]?.addEventListener("ended", () => {
+            stopCamera();
+            status.textContent = "Camera stream ended.";
+        }, {once: true});
 
-        document.getElementById("cameraStatus").textContent =
+        status.textContent =
             "Live detection active · analyzing every 1.5 seconds";
 
         cameraTimer = setInterval(captureCameraFrame, 1500);
     } catch (error) {
-        document.getElementById("cameraStatus").textContent =
-            `Camera access failed: ${error.message}`;
+        status.textContent = error.name === "NotAllowedError"
+            ? "Camera permission was denied. Allow camera access in browser settings."
+            : `Camera access failed: ${error.message}`;
+    } finally {
+        cameraStarting = false;
     }
 }
 
 function stopCamera() {
+    cameraStarting = false;
+    cameraGeneration += 1;
     if (cameraTimer) {
         clearInterval(cameraTimer);
         cameraTimer = null;
@@ -1033,6 +1019,8 @@ function stopCamera() {
 
     const video = document.getElementById("video");
     video.srcObject = null;
+    const overlay = document.getElementById("cameraCanvas");
+    overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
 
     const status = document.getElementById("cameraStatus");
 
@@ -1047,9 +1035,10 @@ async function captureCameraFrame() {
     if (!video.videoWidth || !video.videoHeight) return;
 
     cameraBusy = true;
+    const generation = cameraGeneration;
 
     try {
-        const canvas = document.getElementById("cameraCanvas");
+        const canvas = document.getElementById("cameraFrameCanvas");
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -1060,6 +1049,7 @@ async function captureCameraFrame() {
         const blob = await new Promise(resolve =>
             canvas.toBlob(resolve, "image/jpeg", 0.82)
         );
+        if (!blob) throw new Error("Could not encode camera frame.");
 
         const form = new FormData();
         form.append("file", blob, "camera.jpg");
@@ -1071,9 +1061,36 @@ async function captureCameraFrame() {
 
         const data = await response.json();
 
-        if (!response.ok) return;
+        if (generation !== cameraGeneration || !cameraStream) return;
+        if (!response.ok) throw new Error(data.detail || "Frame inference failed.");
 
         const detected = data.detections || [];
+        const overlay = document.getElementById("cameraCanvas");
+        const rect = video.getBoundingClientRect();
+        overlay.width = Math.round(rect.width * devicePixelRatio);
+        overlay.height = Math.round(rect.height * devicePixelRatio);
+        const overlayContext = overlay.getContext("2d");
+        overlayContext.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+        overlayContext.clearRect(0, 0, rect.width, rect.height);
+        const scaleX = rect.width / video.videoWidth;
+        const scaleY = rect.height / video.videoHeight;
+        detected.forEach(d => {
+            const b = d.bbox;
+            const color = d.review_required ? "#d97706" : "#2563eb";
+            overlayContext.strokeStyle = color;
+            overlayContext.lineWidth = 3;
+            overlayContext.strokeRect(
+                b.x1 * scaleX, b.y1 * scaleY,
+                (b.x2 - b.x1) * scaleX, (b.y2 - b.y1) * scaleY
+            );
+            overlayContext.fillStyle = color;
+            overlayContext.font = "bold 14px Segoe UI";
+            overlayContext.fillText(
+                `${(d.confidence * 100).toFixed(1)}%${d.review_required ? " · REVIEW" : ""}`,
+                b.x1 * scaleX,
+                Math.max(16, b.y1 * scaleY - 6)
+            );
+        });
 
         document.getElementById("cameraResults").innerHTML =
             detected.length
@@ -1090,6 +1107,12 @@ async function captureCameraFrame() {
                  <strong>0</strong><br>
                  <span class="muted">No plate detected in current frame</span>
                </div>`;
+    } catch (error) {
+        if (generation === cameraGeneration) {
+            stopCamera();
+            document.getElementById("cameraStatus").textContent =
+                `Camera stopped after an error: ${error.message}`;
+        }
     } finally {
         cameraBusy = false;
     }

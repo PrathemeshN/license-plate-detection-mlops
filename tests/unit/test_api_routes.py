@@ -303,10 +303,11 @@ def test_predict_rejects_request_over_limit() -> None:
 
 def test_bulk_frontend_uses_api_response_fields() -> None:
     frontend = Path("frontend/index.html").read_text(encoding="utf-8")
+    helpers = Path("frontend/bulk-results.js").read_text(encoding="utf-8")
 
     assert "Processed ${data.count} image(s)" in frontend
-    assert "item.count" in frontend
-    assert "detection.confidence * 100" in frontend
-    assert "escapeHtml(item.filename)" in frontend
-    assert "data.total_files" not in frontend
-    assert "confidence_percent" not in frontend
+    assert "item.count" in helpers
+    assert "d.confidence * 100" in helpers
+    assert "escapeHtml(item.filename)" in helpers
+    assert "data.total_files" not in frontend + helpers
+    assert "confidence_percent" not in frontend + helpers
