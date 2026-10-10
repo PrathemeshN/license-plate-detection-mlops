@@ -50,6 +50,9 @@ jobs:
             --cov-report=xml \
             --cov-fail-under=70
 
+      - name: Frontend utility tests
+        run: node --test tests/frontend.test.cjs
+
       - name: Bandit
         run: bandit -r app preprocessing evaluation -ll
 

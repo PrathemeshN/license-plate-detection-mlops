@@ -17,6 +17,16 @@ def test_health_check() -> None:
     assert response.json() == {"status": "healthy"}
 
 
+def test_frontend_and_bulk_helper_are_served() -> None:
+    frontend_response = client.get("/")
+    helper_response = client.get("/static/bulk-results.js")
+
+    assert frontend_response.status_code == 200
+    assert "/static/bulk-results.js" in frontend_response.text
+    assert helper_response.status_code == 200
+    assert "buildBulkCsv" in helper_response.text
+
+
 def test_readiness_check() -> None:
     """Verify that the readiness endpoint returns a ready status."""
     response = client.get("/ready")

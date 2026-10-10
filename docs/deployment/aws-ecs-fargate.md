@@ -1,6 +1,6 @@
 ﻿# AWS ECS Fargate Deployment Guide
 
-> **Status note:** This guide contains observations from a previous deployment and test session. The live AWS service, running image digest, task-definition revision, task count, logs, and security-group rules have not been verified as of this documentation revision. Run the verification commands below before relying on these details for a current release.
+> **Live read-only check (2026-10-10):** ECS reported the service active with one desired/running task on `license-plate-detector:1`. The running container was healthy and used ECR digest `sha256:bc42e04be8cff815ebba58cca5f1e11d7d724aae4c62c0a07e899867ecfced9c`. Its current public IP was `3.110.138.59`, with TCP 8000 restricted to `137.59.68.170/32`. From the authorized tester network, `/health`, `/ready`, `/openapi.json`, `/api/v1/predict`, and `/api/v1/bulk-predict` returned successfully for generated blank-image fixtures. The origin is HTTP only; an HTTPS probe failed its TLS handshake. This was a read-only verification, not a deployment of the current feature branch.
 
 ## 1. Previously recorded deployment snapshot
 
@@ -162,7 +162,7 @@ For a controlled release:
 7. Verify service steady state, health/readiness, and real inference.
 8. Record the deployed image digest and retain a known-good revision for rollback.
 
-A successful local or CI build does not alone prove a successful AWS deployment.
+A successful local or CI build does not alone prove a successful AWS deployment. The CD workflow requires a preconfigured GitHub OIDC role ARN and will not use account-root credentials.
 
 ## 9. Cost controls
 
